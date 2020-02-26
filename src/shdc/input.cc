@@ -109,6 +109,39 @@ static const std::string hlsl_options_tag = "@hlsl_options";
 static const std::string msl_options_tag = "@msl_options";
 static const std::string include_tag = "@include";
 
+static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, input_t& inp) {
+    // Returns true if it saw no errors, even if it did nothing.
+    // If it sees #pragma sokol, it modifies both `toks` and `line`
+    // in-place so that they no longer contain them.
+    if (toks.size() < 2) {
+        return true;
+    }
+    size_t expect_tag_index = 0;
+    if (toks[0] == "#pragma" && toks[1] == "sokol") {
+        expect_tag_index = 2;
+    } else if (toks.size() >= 3 && toks[0] == "#" && toks[1] == "pragma" && toks[2] == "sokol") {
+        // The GLSL spec allows whitespace between # and pragma, so we might as well handle it.
+        expect_tag_index = 3;
+    } else {
+        // Not a `#pragma sokol`, but not an error either.
+        return true;
+    }
+    // If it's not a tag, emit an error.
+    if (toks.size() <= expect_tag_index || toks[expect_tag_index][0] != '@') {
+        inp.out_error = inp.error(line_index, fmt::format(
+            "'#pragma sokol' should be followed by a @tag, got `{}`.",
+            toks[expect_tag_index]));
+        return false;
+    }
+    toks.erase(toks.begin(), toks.begin() + expect_tag_index);
+    // We don't know where in the line itself this is, so just drop everything
+    // before the first @.
+    auto at_pos = line.find('@');
+    assert(at_pos != std::string::npos);
+    line.erase(line.begin(), line.begin() + at_pos);
+    return true;;
+}
+
 /* validate source tags for errors, on error returns false and sets error object in inp */
 static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
@@ -461,10 +494,13 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
 
     // preprocess
     std::vector<std::string> tokens;
-    for (const std::string& line : lines) {
+    for (std::string& line : lines) {
         // look for @include tags
         pystring::split(line, tokens);
         if (tokens.size() > 0) {
+            if (!normalize_pragma_sokol(tokens, line, line_index, inp)) {
+                return false;
+            }
             if (tokens[0] == include_tag) {
                 if (!validate_include_tag(tokens, line_index, path_used, inp)) {
                     return false;
@@ -480,8 +516,11 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 inp.lines.push_back({line, filename_index, line_index});
             }
         }
-        // empty lines are not added
-
+        else {
+            // this is an empty line, but add it anyway so the error line
+            // indices are always correct
+            inp.lines.push_back({ line, filename_index, line_index});
+        }
         line_index++;
     }
 
