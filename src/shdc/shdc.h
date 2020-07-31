@@ -17,6 +17,7 @@ struct slang_t {
         GLSL330 = 0,
         GLSL100,
         GLSL300ES,
+        HLSL4,
         HLSL5,
         METAL_MACOS,
         METAL_IOS,
@@ -33,6 +34,7 @@ struct slang_t {
             case GLSL330:       return "glsl330";
             case GLSL100:       return "glsl100";
             case GLSL300ES:     return "glsl300es";
+            case HLSL4:         return "hlsl4";
             case HLSL5:         return "hlsl5";
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
@@ -54,6 +56,38 @@ struct slang_t {
             }
         }
         return res;
+    }
+    static bool is_glsl(type_t c) {
+        switch (c) {
+            case GLSL330:
+            case GLSL100:
+            case GLSL300ES:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_hlsl(type_t c) {
+        switch (c) {
+            case HLSL4:
+            case HLSL5:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_msl(type_t c) {
+        switch (c) {
+            case METAL_MACOS:
+            case METAL_IOS:
+            case METAL_SIM:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_wgpu(type_t c) {
+        return WGPU == c;
     }
 };
 
