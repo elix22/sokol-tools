@@ -168,10 +168,10 @@ struct errmsg_t {
 
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
-            return fmt::format("{}({}): {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
+            return fmt::format("{}({}): {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
         }
         else {
-            return fmt::format("{}:{}:0: {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
+            return fmt::format("{}:{}:0: {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
         }
     }
     // print error to stdout
@@ -199,7 +199,7 @@ struct args_t {
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     format_t::type_t output_format = format_t::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
-    bool no_ifdef = false;              // don't emit platform #ifdefs (SOKOL_D3D11 etc...)
+    bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
     int gen_version = 1;                // generator-version stamp
     errmsg_t::msg_format_t error_format = errmsg_t::GCC;  // format for error messages
 
