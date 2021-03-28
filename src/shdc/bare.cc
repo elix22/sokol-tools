@@ -8,6 +8,8 @@
 
 namespace shdc {
 
+using namespace output;
+
 static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
         case slang_t::GLSL330:
@@ -79,8 +81,8 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
             fs_blob = &bytecode.blobs[fs_blob_index];
         }
 
-        std::string file_path_vs = fmt::format("{}{}{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, vs_blob));
-        std::string file_path_fs = fmt::format("{}{}{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, fs_blob));
+        std::string file_path_vs = fmt::format("{}_{}{}_{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, vs_blob));
+        std::string file_path_fs = fmt::format("{}_{}{}_{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, fs_blob));
 
         errmsg_t err;
         err = write_stage(file_path_vs, vs_src, vs_blob);
@@ -103,7 +105,7 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = output_t::check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, spirvcross[i], slang);
             if (err.valid) {
                 return err;
             }

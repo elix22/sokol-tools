@@ -4,6 +4,15 @@ Shader-code-generator for sokol_gfx.h
 
 ## Updates
 
+- **10-Feb-2021**:
+    - the C code generator has been updated for the latest API-breaking-changes
+    in sokol_gfx.h
+    - the generated function which returns an initialized sg_shader_desc struct
+    now takes an input parameter to select the backend-specific code instead
+    of calling the ```sg_query_backend()``` function
+    - a code generator for the [sokol-zig bindings](https://github.com/floooh/sokol-zig/) has been
+    added, used with ```--format sokol_zig```
+
 - **03-Oct-2020**: The command line option ```--noifdef``` is now obsolete (but
   still accepted) and has been replaced with ```--ifdef```. The default
   behaviour is now to *not* wrap the generated platform specific code with
@@ -13,8 +22,8 @@ Shader-code-generator for sokol_gfx.h
 ## Feature Overview
 
 sokol-shdc is a shader-cross-compiler and -code-generator command line tool
-which translates an 'annotated GLSL' source file into a C header for use
-with sokol_gfx.
+which translates an 'annotated GLSL' source file into a C header (or other
+output formats) for use with sokol_gfx.
 
 Shaders are written in 'modern GLSL' (v450) and translated into the following
 shader dialects:
@@ -88,7 +97,7 @@ shader program looks like this:
 
 ```c
 // create a shader object from generated sg_shader_desc:
-sg_shader shd = sg_make_shader(triangle_shader_desc());
+sg_shader shd = sg_make_shader(triangle_shader_desc(sg_query_backend()));
 
 // create a pipeline object with this shader, and
 // code-generated vertex attribute location constants
@@ -277,7 +286,7 @@ follows:
   shader source code without returning an error. Note that the **metal_sim**
   target for the iOS simulator doesn't support generating bytecode, this
   will always emit Metal source code.
-- **-f --format=[sokol,sokol_impl,sokol_decl,bare]**: set output backend (default: **sokol**)
+- **-f --format=[sokol,sokol_impl,sokol_decl,bare,sokol_zig]**: set output backend (default: **sokol**)
     - **sokol**: Generate a C header where data is declared as ```static``` and
       functions are declared as ```static inline```. If this header is included
       multiple times, you should be aware that the executable may contain duplicate data.
@@ -293,6 +302,8 @@ follows:
         - **glsl**: *.frag.glsl and *.vert.glsl
         - **hlsl**: *.frag.hlsl and *.vert.hlsl, or *.fxc for bytecode
         - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
+    - **sokol_zig**: This generates a Zig source file that's compatible with the
+      [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
 
   Note that some options and features of sokol-shdc can be contradictory to (and thus, ignored by) backends. For example, the **bare** backend only writes shader code, and disregards all other information.
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
@@ -725,7 +736,7 @@ typedef struct vs_params_t {
 vs_params_t vs_params = {
     .mvp = ...
 };
-sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
+sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
 ```
 
 The GLSL uniform block can have an explicit bind slot:
@@ -743,7 +754,7 @@ been explicitely defined as 0:
 vs_params_t vs_params = {
     .mvp = ...
 };
-sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &vs_params, sizeof(vs_params));
+sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &SG_RANGE(vs_params));
 ```
 
 ### Binding images
