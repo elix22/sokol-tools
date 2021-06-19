@@ -89,6 +89,15 @@ struct slang_t {
     static bool is_wgpu(type_t c) {
         return WGPU == c;
     }
+    static slang_t::type_t first_valid(uint32_t mask) {
+        int i = 0;
+        for (i = 0; i < NUM; i++) {
+            if (0 != (mask & (1<<i))) {
+                break;
+            }
+        }
+        return (slang_t::type_t)i;
+    }
 };
 
 /* the output format */
@@ -201,6 +210,8 @@ struct args_t {
     std::string input;                  // input file path
     std::string output;                 // output file path
     std::string tmpdir;                 // directory for temporary files
+    std::string module;                 // optional @module name override
+    std::vector<std::string> defines;   // additional preprocessor defines
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     format_t::type_t output_format = format_t::SOKOL; // output format
@@ -299,7 +310,7 @@ struct input_t {
     std::map<std::string, program_t> programs;    // all @program definitions
 
     input_t() { };
-    static input_t load_and_parse(const std::string& path);
+    static input_t load_and_parse(const std::string& path, const std::string& module_override);
     void dump_debug(errmsg_t::msg_format_t err_fmt) const;
 
     errmsg_t error(int index, const std::string& msg) const {
@@ -325,7 +336,8 @@ struct input_t {
 /* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
 struct spirv_blob_t {
     int snippet_index = -1;         // index into input_t.snippets
-    std::vector<uint32_t> bytecode; // the SPIRV blob
+    std::string source;             // source code this blob was compiled from
+    std::vector<uint32_t> bytecode; // the resulting SPIRV blob
 
     spirv_blob_t(int snippet_index): snippet_index(snippet_index) { };
 };
@@ -338,7 +350,7 @@ struct spirv_t {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang);
+    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
     static spirv_t compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
@@ -538,7 +550,7 @@ struct bare_t {
 };
 
 /* utility functions for generators */
-namespace output {
+namespace util {
     errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
     int uniform_type_size(uniform_t::type_t type);
@@ -546,6 +558,8 @@ namespace output {
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
     const image_t* find_image(const spirvcross_refl_t& refl, int slot);
+    const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
+    const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
 };
 
 } // namespace shdc
