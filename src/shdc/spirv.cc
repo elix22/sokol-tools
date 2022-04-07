@@ -108,13 +108,11 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     ("for (;;) { }") to WebGL
 */
 static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    spv_target_env target_env;
     if (slang == slang_t::WGPU) {
-        target_env = SPV_ENV_WEBGPU_0;
+        return;
     }
-    else {
-        target_env = SPV_ENV_UNIVERSAL_1_2;
-    }
+    spv_target_env target_env;
+    target_env = SPV_ENV_UNIVERSAL_1_2;
     spvtools::Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(
         [](spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
@@ -132,10 +130,10 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
     optimizer.RegisterPass(spvtools::CreateLocalSingleBlockLoadStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateLocalSingleStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateSimplificationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));    // NOTE: call the "preserveInterface" version of CreateAggressiveDCEPass()
     optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
     optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateDeadBranchElimPass());
 // NOTE: it's the BlockMergePass which moves the init statement of a for-loop
 //       out of the for-statement, which makes it invalid for WebGL
@@ -144,11 +142,11 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 //    optimizer.RegisterPass(spvtools::CreateLocalMultiStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateIfConversionPass());
     optimizer.RegisterPass(spvtools::CreateSimplificationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
     optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
     optimizer.RegisterPass(spvtools::CreateRedundancyEliminationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
 
     spvtools::OptimizerOptions spvOptOptions;
@@ -315,6 +313,7 @@ void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) con
     fmt::print(stderr, "\n");
 }
 
+// copied from ext/glslang/glslang/OSDependent/Web/glslang.js.cpp
 const TBuiltInResource DefaultTBuiltInResource = {
     /* .MaxLights = */ 32,
     /* .MaxClipPlanes = */ 6,
@@ -408,6 +407,7 @@ const TBuiltInResource DefaultTBuiltInResource = {
     /* .maxTaskWorkGroupSizeY_NV = */ 1,
     /* .maxTaskWorkGroupSizeZ_NV = */ 1,
     /* .maxMeshViewCountNV = */ 4,
+    /* .maxDualSourceDrawBuffersEXT = */ 1,
 
     /* .limits = */ {
         /* .nonInductiveForLoops = */ 1,
