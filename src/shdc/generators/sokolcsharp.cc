@@ -303,7 +303,6 @@ void SokolCSharpGenerator::gen_storage_buffer_decl(const GenInput& gen, const St
     l_open("struct {} {{\n", struct_name(item.struct_typename));
     gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
     l_close("}} ;\n");
-    l("#pragma pack(pop)\n");
 }
 // desc.vertex_func.source = System.Text.Encoding.UTF8.GetString(vs_source_glsl300es);
 // desc.vertex_func.source = (const char*)vs_source_glsl430;
@@ -387,7 +386,7 @@ void SokolCSharpGenerator::gen_shader_desc_func(const GenInput& gen, const Progr
                 if (sbuf) {
                     const std::string& sbn = fmt::format("desc.storage_buffers[{}]", sbuf_index);
                     l("{}.stage = {};\n", sbn, shader_stage(sbuf->stage));
-                    l("{}.readonly = {};\n", sbn, sbuf->readonly);
+                    l("{}._readonly = {};\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
                         l("{}.hlsl_register_t_n = {};\n", sbn, sbuf->hlsl_register_t_n);
                     } else if (Slang::is_msl(slang)) {
