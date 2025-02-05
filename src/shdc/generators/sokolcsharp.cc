@@ -69,7 +69,8 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     l("using hmm_vec4=System.Numerics.Vector4;\n");
     l("using hmm_mat4=System.Numerics.Matrix4x4;\n");
     l("\n\n");
-    l("public static unsafe class {}_compiled_shaders \n",filename);
+    l("namespace {} {{\n\n",filename);
+    l("public static unsafe class Shaders \n");
     l_open("{{\n");
     /*
      
@@ -85,7 +86,8 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
 }
 
 void SokolCSharpGenerator::gen_epilog(const GenInput& gen) {
-    l_close("}}\n");
+    l_close("}}\n\n");
+    l("}} // namescape \n\n");
 }
 
 void SokolCSharpGenerator::gen_prerequisites(const GenInput& gen) {
