@@ -43,6 +43,16 @@ ErrMsg SokolCSharpGenerator::begin(const GenInput& gen) {
 
 void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     
+    std::string dir;
+    std::string filename;
+    pystring::os::path::split(dir, filename, gen.args.output);
+    if(gen.inp.module != "")
+    {
+        filename = gen.inp.module;
+    }
+    filename = pystring::replace(filename, "-", "_");
+    filename = pystring::replace(filename, ".", "_");
+    
     l("using static Sokol.SG;\n");
     l("using static Sokol.SG.sg_backend;\n");
     l("using static Sokol.SG.sg_shader_stage;\n");
@@ -58,7 +68,7 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     l("using hmm_vec4=System.Numerics.Vector4;\n");
     l("using hmm_mat4=System.Numerics.Matrix4x4;\n");
     l("\n\n");
-    l("public static unsafe class sokol_compiled_shaders \n");
+    l("public static unsafe class {}_compiled_shaders \n",filename);
     l_open("{{\n");
     /*
      
