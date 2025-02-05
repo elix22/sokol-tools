@@ -80,6 +80,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_d        D module file\n"
         "  - sokol_jai      Jai module file\n"
         "  - sokol_c3       C3 module file\n"
+        "  - sokol_csharp   C# module file\n"
         "  - bare           raw output of SPIRV-Cross compiler, in text or binary format\n"
         "  - bare_yaml      like bare, but with reflection file in YAML format\n\n"
         "Options:\n\n");

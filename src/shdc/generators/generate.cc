@@ -13,6 +13,7 @@
 #include "sokoljai.h"
 #include "sokolc3.h"
 #include "yaml.h"
+#include "sokolcsharp.h"
 #include <memory>
 
 namespace shdc::gen {
@@ -37,6 +38,8 @@ std::unique_ptr<Generator> make_generator(Format::Enum format) {
             return std::make_unique<SokolJaiGenerator>();
         case Format::SOKOL_C3:
             return std::make_unique<SokolC3Generator>();
+        case Format::SOKOL_CSHARP:
+            return std::make_unique<SokolCSharpGenerator>();
         default:
             return std::make_unique<SokolCGenerator>();
     }
