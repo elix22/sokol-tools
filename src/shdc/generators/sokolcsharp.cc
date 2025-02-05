@@ -62,6 +62,7 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     l("using static Sokol.SG.sg_sampler_type;\n");
     l("using static Sokol.SG.sg_image_sample_type;\n");
     l("using System.Numerics;\n");
+    l("using System.Runtime.InteropServices;\n");
     l("\n\n");
     l("using hmm_vec2=System.Numerics.Vector2;\n");
     l("using hmm_vec3=System.Numerics.Vector3;\n");
@@ -455,11 +456,10 @@ void SokolCSharpGenerator::gen_shader_desc_func(const GenInput& gen, const Progr
 }
 
 void SokolCSharpGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)attr_name;\n");
+    l_open("public static int {}_attr_slot(string attr_name) {{\n", prog.name);
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
-            l_open("if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
+            l_open("if (attr_name == \"{}\") {{\n", attr.name);
             l("return {};\n", attr.slot);
             l_close("}}\n");
         }
@@ -469,11 +469,10 @@ void SokolCSharpGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Pr
 }
 
 void SokolCSharpGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_image_slot(const char* img_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)img_name;\n");
+    l_open("public static int {}_image_slot(string img_name) {{\n", prog.name);
     for (const Image& img: prog.bindings.images) {
         if (img.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+            l_open("if (img_name == \"{}\") {{\n", img.name);
             l("return {};\n", img.sokol_slot);
             l_close("}}\n");
         }
@@ -483,11 +482,10 @@ void SokolCSharpGenerator::gen_image_slot_refl_func(const GenInput& gen, const P
 }
 
 void SokolCSharpGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_sampler_slot(const char* smp_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)smp_name;\n");
+    l_open("public static int {}_sampler_slot(string smp_name) {{\n", prog.name);
     for (const Sampler& smp: prog.bindings.samplers) {
         if (smp.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
+            l_open("if (smp_name == \"{}\") {{\n", smp.name);
             l("return {};\n", smp.sokol_slot);
             l_close("}}\n");
         }
@@ -497,11 +495,10 @@ void SokolCSharpGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const
 }
 
 void SokolCSharpGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_uniformblock_slot(const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)ub_name;\n");
+    l_open("public static int {}_uniformblock_slot(string ub_name) {{\n", prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            l_open("if (ub_name == \"{}\") {{\n", ub.name);
             l("return {};\n", ub.sokol_slot);
             l_close("}}\n");
         }
@@ -511,12 +508,11 @@ void SokolCSharpGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen,
 }
 
 void SokolCSharpGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}size_t {}{}_uniformblock_size(const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)ub_name;\n");
+    l_open("public static int {}_uniformblock_size(string ub_name) {{\n", prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-            l("return sizeof({});\n", struct_name(ub.name));
+            l_open("if (ub_name == \"{}\") {{\n", ub.name);
+            l("return Marshal.SizeOf<{}>();\n", struct_name(ub.name));
             l_close("}}\n");
         }
     }
@@ -525,11 +521,10 @@ void SokolCSharpGenerator::gen_uniform_block_size_refl_func(const GenInput& gen,
 }
 
 void SokolCSharpGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_storagebuffer_slot(const char* sbuf_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)sbuf_name;\n");
+    l_open("public static int {}_storagebuffer_slot(string sbuf_name) {{\n", prog.name);
     for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
         if (sbuf.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.name);
+            l_open("if (sbuf_name == \"{}\") {{\n", sbuf.name);
             l("return {};\n", sbuf.sokol_slot);
             l_close("}}\n");
         }
@@ -539,13 +534,12 @@ void SokolCSharpGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen
 }
 
 void SokolCSharpGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_uniform_offset(const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)ub_name; (void)u_name;\n");
+    l_open("public static int {}_uniform_offset(string ub_name, string u_name) {{\n", prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            l_open("if (ub_name == \"{}\") {{\n", ub.name);
             for (const Type& u: ub.struct_info.struct_items) {
-                l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                l_open("if (u_name == \"{}\") {{\n", u.name);
                 l("return {};\n", u.offset);
                 l_close("}}\n");
             }
@@ -557,18 +551,13 @@ void SokolCSharpGenerator::gen_uniform_offset_refl_func(const GenInput& gen, con
 }
 
 void SokolCSharpGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}sg_glsl_shader_uniform {}{}_uniform_desc(const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)ub_name; (void)u_name;\n");
-    l("#if defined(__cplusplus)\n");
-    l("sg_glsl_shader_uniform res = {{}};\n");
-    l("#else\n");
-    l("sg_glsl_shader_uniform res = {{0}};\n");
-    l("#endif\n");
+    l_open("public static sg_glsl_shader_uniform {}_uniform_desc(string ub_name, string u_name) {{\n", prog.name);
+    l("sg_glsl_shader_uniform res = default;\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            l_open("if (ub_name == \"{}\") {{\n", ub.name);
             for (const Type& u: ub.struct_info.struct_items) {
-                l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                l_open("if (u_name == \"{}\") {{\n", u.name);
                 l("res.type = {};\n", uniform_type(u.type));
                 l("res.array_count = {};\n", u.array_count);
                 l("res.glsl_name = \"{}\";\n", u.name);
