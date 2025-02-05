@@ -1,13 +1,17 @@
 #
 # project: sokol-tools
 #
-cmake_minimum_required(VERSION 3.0)
-set(CMAKE_CXX_STANDARD 11)
+cmake_minimum_required(VERSION 3.20)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "")
 project(sokol-tools)
 
 # include the fips main cmake file
 get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
 include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
+
+set(FIPS_EXCEPTIONS ON)
+set(FIPS_RTTI ON)
 
 fips_setup()
 if (FIPS_CLANG OR FIPS_GCC)

@@ -17,7 +17,7 @@ https://github.com/floooh/sokol-tools-bin
 #### Tool prerequisites:
 ```
 > python --version
-2.x or 3.x
+3.x
 > cmake --version
 3.x
 # optional:
@@ -61,8 +61,7 @@ The executables for Linux **must** be compiled via Docker since they use
 static linking with musl, and Alpine Linux in Docker is the easiest option for this.
 
 ```
-> cd docker
-> ./build.sh
+> ./build_docker.sh
 ```
 The compiled Linux executable will be in the same directory (docker/)
 
@@ -117,4 +116,4 @@ Many thanks to:
 - https://github.com/KhronosGroup/SPIRV-Cross
 - https://github.com/KhronosGroup/SPIRV-Tools.git
 - https://github.com/KhronosGroup/SPIRV-Headers
-
+- https://dawn.googlesource.com/tint

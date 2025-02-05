@@ -1,5 +1,5 @@
 @vs vs
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     uniform mat4 mvp;
     uniform mat4 tm;
 };
@@ -16,12 +16,13 @@ void main() {
 @end
 
 @fs fs
-uniform sampler2D tex;
+layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
 in vec4 uv;
 in vec4 color;
 out vec4 frag_color;
 void main() {
-    frag_color = texture(tex, uv.xy) * color;
+    frag_color = texture(sampler2D(tex, smp), uv.xy) * color;
 }
 @end
 

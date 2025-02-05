@@ -6,15 +6,17 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: lukka/get-cmake@latest
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: build
       run: |
-        python fips set local on
-        python fips build win64-vstudio-release
+        python3 fips set local on
+        python3 fips build win64-vstudio-release
+        md5sum fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: win64-vstudio-release
         path: fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
@@ -22,16 +24,17 @@ jobs:
   mac_intel:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: lukka/get-cmake@latest
+    - uses: actions/checkout@v4
       with:
         submodules: true
-    - uses: seanmiddleditch/gha-setup-ninja@master
     - name: build
       run: |
-        python fips set local on
-        python fips build osx-x64-ninja-release
+        python3 fips set local on
+        python3 fips build osx-x64-ninja-release
+        md5 fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: osx-x64-ninja-release
         path: fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
@@ -39,61 +42,89 @@ jobs:
   mac_arm:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: lukka/get-cmake@latest
+    - uses: actions/checkout@v4
       with:
         submodules: true
-    - uses: seanmiddleditch/gha-setup-ninja@master
     - name: build
       run: |
-        python fips set local on
-        python fips build osx-arm64-ninja-release
+        python3 fips set local on
+        python3 fips build osx-arm64-ninja-release
+        md5 fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: osx-arm64-ninja-release
         path: fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
         retention-days: 1
-  linux:
+  linux_intel:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: build
-      run: ./build_docker.sh
+      run: |
+        ./build_docker.sh
+        md5sum sokol-shdc
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: linux-ninja-release
+        name: linux-x64-ninja-release
+        path: sokol-shdc
+        retention-days: 1
+  linux_arm:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: build
+      run: |
+        ./build_docker.sh
+        md5sum sokol-shdc
+    - name: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-arm64-ninja-release
         path: sokol-shdc
         retention-days: 1
   deploy:
-    needs: [windows, mac_intel, mac_arm, linux]
+    needs: [windows, mac_intel, mac_arm, linux_intel, linux_arm]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: floooh/sokol-tools-bin
         ssh-key: ${{ secrets.GHACTIONS_PUSH }}
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: win64-vstudio-release
         path: bin/win32
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: osx-x64-ninja-release
         path: bin/osx
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: osx-arm64-ninja-release
         path: bin/osx_arm64
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
-        name: linux-ninja-release
+        name: linux-x64-ninja-release
         path: bin/linux
+    - uses: actions/download-artifact@v4
+      with:
+        name: linux-arm64-ninja-release
+        path: bin/linux_arm64
     - name: "commit and push"
       run: |
-        chmod a+x bin/osx/sokol-shdc bin/osx_arm64/sokol-shdc bin/linux/sokol-shdc
+        md5sum bin/win32/sokol-shdc.exe
+        md5sum bin/osx/sokol-shdc
+        md5sum bin/osx_arm64/sokol-shdc
+        md5sum bin/linux/sokol-shdc
+        md5sum bin/linux_arm64/sokol-shdc
+        chmod a+x bin/osx/sokol-shdc bin/osx_arm64/sokol-shdc bin/linux/sokol-shdc bin/linux_arm64/sokol-shdc
         git config user.email "none"
         git config user.name "GH Action"
         git add .
