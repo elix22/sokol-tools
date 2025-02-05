@@ -48,8 +48,14 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     l("using static Sokol.SG.sg_shader_stage;\n");
     l("using static Sokol.SG.sg_uniform_type;\n");
     l("using static Sokol.SG.sg_uniform_layout;\n");
+    l("using static Sokol.SG.sg_image_type;\n");
+    l("using static Sokol.SG.sg_sampler_type;\n");
+    l("using static Sokol.SG.sg_image_sample_type;\n");
     l("using System.Numerics;\n");
     l("\n\n");
+    l("using hmm_vec2=System.Numerics.Vector2;\n");
+    l("using hmm_vec3=System.Numerics.Vector3;\n");
+    l("using hmm_vec4=System.Numerics.Vector4;\n");
     l("using hmm_mat4=System.Numerics.Matrix4x4;\n");
     l("\n\n");
     l("public static unsafe class sokol_compiled_shaders \n");
