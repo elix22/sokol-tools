@@ -48,7 +48,7 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     pystring::os::path::split(dir, filename, gen.args.output);
     if(gen.inp.module != "")
     {
-        filename = gen.inp.module;
+        filename += std::string("_")+gen.inp.module;
     }
     filename = pystring::replace(filename, "-", "_");
     filename = pystring::replace(filename, ".", "_");
@@ -71,18 +71,7 @@ void SokolCSharpGenerator::gen_prolog(const GenInput& gen) {
     l("\n\n");
     l("namespace {} {{\n\n",filename);
     l("public static unsafe class Shaders \n");
-    l_open("{{\n");
-    /*
-     
-     
-     }
-     l("#pragma once\n");
-     for (const auto& header: gen.inp.headers) {
-         l("{}\n", header);
-     }
-
-     */
-  
+    l_open("{{\n");  
 }
 
 void SokolCSharpGenerator::gen_epilog(const GenInput& gen) {
