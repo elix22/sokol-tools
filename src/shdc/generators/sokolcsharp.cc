@@ -116,19 +116,26 @@ void SokolCSharpGenerator::print1dArray(std::string name,std::string type,int si
 
 void SokolCSharpGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
     int cur_offset = 0;
+    l("\n[StructLayout(LayoutKind.Sequential)]\n");
     l_open("public struct {} {{\n", struct_name(ub.name));
+    l("public {}(){{}}\n", struct_name(ub.name));
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
             l("fixed byte _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
+       
+       
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
             if (uniform.array_count == 0) {
                 l("public {} {};\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
             } else {
-                l("public {} {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
+                // public hmm_vec4[] position = new hmm_vec4[4];
+                // public hmm_vec4 position[4];
+                l("public {}[] {} = new {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name,gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.array_count);
+//                l("public {} {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
             }
         } else {
             // default type names (float)
