@@ -215,7 +215,7 @@ void SokolCSharpGenerator::gen_struct_interior_decl_std430(const GenInput& gen, 
             if (item.array_count == 0) {
                 l("{} {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name);
             } else {
-                l("fixed {} {}[{}];\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name, item.array_count); // TBD elix22 , needs work
+                l("public {}[] {} = new {}[{}];\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name,gen.inp.ctype_map.at(item.type_as_glsl()), item.array_count);
             }
         } else {
             // default typenames
