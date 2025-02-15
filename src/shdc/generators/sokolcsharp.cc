@@ -132,10 +132,7 @@ void SokolCSharpGenerator::gen_uniform_block_decl(const GenInput &gen, const Uni
             if (uniform.array_count == 0) {
                 l("public {} {};\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
             } else {
-                // public hmm_vec4[] position = new hmm_vec4[4];
-                // public hmm_vec4 position[4];
                 l("public {}[] {} = new {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name,gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.array_count);
-//                l("public {} {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
             }
         } else {
             // default type names (float)
