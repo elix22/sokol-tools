@@ -20,10 +20,10 @@ output formats) for use with sokol-gfx.
 Shaders are written in 'Vulkan-style GLSL' (version 450 with separate texture and sampler
 uniforms) and translated into the following shader dialects:
 
-- GLSL v300es (for GLES3 and WebGL2)
-- GLSL v310es (for GLES3.1, note that this currently isn't supported by sokol_gfx.h)
-- GLSL v410 (for desktop GL without compute shader support)
-- GLSL v430 (for desktop GL with compute shader support)
+- GLSL v300es (for GLES3.0 and WebGL2 without compute shader support)
+- GLSL v310es (for GLES3.1 with compute shader support)
+- GLSL v410 (for desktop GL 4.1 without compute shader support)
+- GLSL v430 (for desktop GL 4.3+ with compute shader support)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 - WGSL (for WebGPU)
@@ -35,7 +35,7 @@ This cross-compilation happens via existing Khronos and Google open source proje
 to run optimization passes on the intermediate SPIRV (mainly for dead-code elimination)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross): for translating the SPIRV
 bytecode to GLSL dialects, HLSL and Metal
-- [Tint](https://dawn.googlesource.com/tint): for translating SPIR-V to WGSL
+- [Tint](https://github.com/floooh/tint-extract): for translating SPIR-V to WGSL
 
 sokol-shdc supports the following output formats:
 
@@ -43,10 +43,11 @@ sokol-shdc supports the following output formats:
 - Zig for integration with [sokol-zig](https://github.com/floooh/sokol-zig)
 - Rust for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
+- C3 for integration with [sokol-c3](https://github.com/floooh/sokol-c3)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
 - D for integration with [sokol-d](https://github.com/kassane/sokol-d)
 - Jai for integration with [sokol-jai](https://github.com/colinbellino/sokol-jai)
-- 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
+- 'raw' output files in GLSL, MSL and HLSL along with reflection info in YAML files
 
 Error messages from `glslang` are mapped back to the original annotated
 source file and converted into GCC or MSVC error formats for integration with
@@ -92,7 +93,9 @@ void main() {
 @program texcube vs fs
 ```
 
-Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may be used to prefix the tags. For example, the final line above could have also been written as:
+Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may
+be used to prefix the tags. For example, the final line above could have also
+been written as:
 
 ```glsl
 #pragma sokol @program texcube vs fs
@@ -136,7 +139,7 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .images[IMG_tex] = img,
+    .views[VIEW_tex] = tex_view,
     .samplers[SMP_smp] = smp,
 });
 const vs_params_t vs_params = {
@@ -295,8 +298,8 @@ void main() {
 ### Command Line Reference
 
 - **-h --help**: Print usage information and exit
-- **-i --input=[GLSL file]**: The path to the input shader file in 'annotated
-  GLSL' format, this must be either relative to the current working directory,
+- **-i --input=[GLSL file]**: The path to the input shader file in sokol-shdc's "annotated
+  GLSL" format, this must be either relative to the current working directory,
   or an absolute path.
 - **-o --output=[path]**: The path to the generated output source file, either
   relative to the current working directory, or as absolute path. The target
@@ -322,7 +325,7 @@ void main() {
     - **metal_sim**: Metal on iOS simulator
     - **wgsl**: WebGPU
 
-  For instance, to generate header with support for Metal on macOS and desktop GL:
+  For instance, to generate a header with support for Metal on macOS and desktop GL:
 
   ```
   --slang glsl430:metal_macos
@@ -354,10 +357,7 @@ follows:
       the ```SOKOL_SHDC_DECL``` is *not* defined
     - **bare**: compiled shader code is written as plain text or
       binary files. For each combination of shader program and target language,
-      a file name based on *--output* is constructed as follows:
-        - **glsl**: *.frag.glsl and *.vert.glsl
-        - **hlsl**: *.frag.hlsl and *.vert.hlsl, or *.fxc for bytecode
-        - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
+      a file name based on *--output* is written.
     - **bare_yaml**: like bare, but also creates a YAML file with shader reflection information.
     - **sokol_zig**: generates output for the [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
     - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
@@ -392,6 +392,9 @@ preprocessor defines for the initial GLSL-to-SPIRV compilation pass
 - **--reflection**: if present, code-generate additional runtime-inspection functions (not that this is not supported by all
   code generation backends)
 - **--save-intermediate-spirv**: debug feature to save out the intermediate SPIRV blob, useful for debug inspection
+- **--no-log-cmdline**: don't log the command line to the output file (useful when the output is committed to
+  version control and sokol-shdc is called with absolute input/output paths)
+- **--dependency-file=[path]**: generate a Clang/GCC style dep-file for use with build systems
 
 ## Shader Tags Reference
 
@@ -572,7 +575,7 @@ quotes. The ```@include``` tag can appear inside or outside a code block:
 
 ### @ctype [glsl_type] [c_type]
 
-The `@ctype` tag defines a type-mapping from GLSL to C or C++ in uniform blocks
+The `@ctype` tag defines a type-mapping from GLSL to the output language in uniform blocks
 for the GLSL types `float`, `vec2`, `vec3`, `vec4`, `int`, `int2`, `int3`,
 `int4`, and `mat4` (these are the currently valid types for use in GLSL uniform
 blocks).
@@ -703,6 +706,8 @@ typedef struct bla_shape_uniforms_t {
     hmm_vec4 eye_pos;
 } bla_shape_uniforms_t;
 ```
+
+Note that some output languages ignore the module tag.
 
 ### @glsl_options, @hlsl_options, @msl_options
 
@@ -901,26 +906,26 @@ sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 
 ### Defining resource bind slots
 
-All GLSL resource types (uniform blocks, textures, samplers and storage buffers)
-must be annotated with explicit bind slots via `layout(binding=N)`. Each resource
-type has its own binding space which directly maps to sokol_gfx.h bindslots:
+All GLSL resource types (uniform blocks, textures, samplers, storage images and
+storage buffers) must be annotated with explicit bind slots via
+`layout(binding=N)`, which are split into 3 separate binding spaces:
 
-- uniform blocks:
+- uniform blocks (all shader stages):
     - `layout(binding=N) uniform { ... }` where `(N >= 0) && (N < 8)`
     - N maps to to the ub_slot params in `sg_apply_uniforms(N, ...)`
-- textures:
-    - `layout(binding=N) texture2D tex;` where `(N >= 0) && (N < 16)`
-    - N maps to the image index in `sg_bindings.images[N]`
-- samplers:
+- textures, storage-images and storage-buffers (all shader stages):
+    - `layout(binding=N) texture2D tex;`
+    - `layout(binding=N) readonly buffer ssbo { ... }`
+    - `layout(binding=N, rgba8) uniform writeonly image2D img`
+    - ...where `(N >= 0) && (N < 28)`
+    - N maps to the view index in `sg_bindings.views[N]`
+- samplers (all shader stages):
     - `layout(binding=N) sampler smp;` where `(N >= 0) && (N < 16)`
     - N maps to the sampler index in `sg_bindings.samplers[N]`
-- storage buffers:
-    - `layout(binding=N) readonly buffer ssbo { ... }` where `(N >= 0) && (N < 8)`
-    - N maps to the storage buffer index in `sg_bindings.storage_buffers[N]`
 
-Bindings must be unique per resource type within a shader `@program` across
-shader stages, and all resources of the same type and name across all programs
-in a shader source file must have matching bindings.
+Bindings must be unique within their bindings space with a shader `@program`
+across shader stages, and all resources of the same type and name across
+all programs in a shader source file must have matching bindings.
 
 Violations against these rules are checked by sokol-shdc and will result in
 compilation errors.
@@ -996,12 +1001,14 @@ sg_apply_uniforms(0, &SG_RANGE(vs_params));
 sg_apply_uniforms(1, &SG_RANGE(fs_params));
 ```
 
-### Binding images and samplers
+### Binding textures and samplers
 
 Textures and samplers must be defined separately in the input GLSL (this is
 also known as 'Vulkan-style GLSL'). Just as with uniform blocks, you must
-define explicit bind slots via `layout(binding=N)`. Textures and samplers
-have separate bindslot spaces, with a range of `(N >=0) && (N < 16)`.
+define explicit bind slots via `layout(binding=N)`. Textures share their
+bindslot space with storage images and storage buffers with a range
+of `(N >= 0) && (N < 28)` while samplers have their own bindslot space
+with a range of `(N >= 0) && (N < 28)`.
 
 ```glsl
 layout(binding=0) uniform texture2D tex;
@@ -1012,17 +1019,17 @@ The resource binding slot for texture and sampler uniforms is available
 as code-generated constant:
 
 ```C
-#define IMG_tex (0)
+#define VIEW_tex (0)
 #define SMP_smp (0)
 ```
 
-This is used in the `sg_bindings` struct as index into the `.images[]`,
+This is used in the `sg_bindings` struct as index into the `.views[]`,
 and `.samplers[]` arrays:
 
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .images[IMG_tex] = img,
+    .views[VIEW_tex] = tex_view,
     .samplers[SMP_smp] = smp,
 });
 ```
@@ -1034,7 +1041,7 @@ must not forget also fixing the C side):
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .images[0] = img,
+    .views[0] = tex_view,
     .samplers[0] = smp,
 });
 ```
@@ -1065,15 +1072,17 @@ layout(binding=1) buffer out_ssbo {
 };
 ```
 
-The binding range for storage buffers is `(N >= 0) && (N < 8)` within one
-shader program and across all shader stages. `N` directly corresponds to
-the index into the `sg_bindings.storage_buffers[]` array.
+Storage-buffer-bindings share their bindings space with texture- and
+storage-image-bindings with a range of `(N >= 0) && (N < 28)` across
+all shader stages. `N` directly corresponds to
+the index into the `sg_bindings.views[]` array.
 
 A binding constant will be generated for each uniquely named storage buffer
 in a shader source file:
 
 ```c
-#define SBUF_ssbo (0)
+#define VIEW_in_ssbo (0)
+#define VIEW_out_ssbo (1)
 ```
 
 To apply a storage buffer binding, you can either use this generated constant,
@@ -1083,18 +1092,18 @@ or directly the binding number from the shader source file:
 // using the code-generated constant:
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .storage_buffers = {
-        [SBUF_in_ssbo] = sbuf_in,
-        [SBUF_out_ssbo] = sbuf_out,
+    .views = {
+        [VIEW_in_ssbo] = sbuf_view_in,
+        [VIEW_out_ssbo] = sbuf_view_out,
     },
 });
 
 // or directly using the explicit binding:
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .storage_buffers = {
-        [0] = sbuf_in,
-        [1] = sbuf_out,
+    .views = {
+        [0] = sbuf_view_in,
+        [1] = sbuf_view_out,
     },
 });
 ```
@@ -1112,9 +1121,54 @@ that the name `vertex` cannot be used for a struct because it is
 a reserved keyword in MSL.
 
 On the C side, `sokol-shdc` will create a C struct `sb_vertex_t` with the required
-alignment and padding (according to `std430` layout) and a `SLOT_ssbo` define
-which can be used in the `sg_bindings` struct to index into the `vs.storage_buffers` or
-`fs.storage_buffers` arrays.
+alignment and padding (according to `std430` layout) and a `VIEW_*` define
+which can be used in the `sg_bindings` struct to index into the `.views[]` array.
+
+### Binding storage images
+
+Note that storage-image-bindings are only allowed in compute shaders and only
+in `writeonly` and `readwrite` access mode. For `readonly` access use a
+regular texture binding instead.
+
+Storage-image-bindings share the bindings space with texture- and
+storage-buffer-bindings with a range of `(N >= 0) && (N < 28)`.
+
+In a compute shader, first define a storage image binding as `writeonly`
+or `readwrite` and then access it via the `imageLoad()` or `imageStore()`
+GLSL builtins:
+
+```glsl
+@cs cs
+layout(binding=0, rgba8) uniform writeonly image2D cs_outp_tex;
+
+void main() {
+    //...
+    imageStore(cs_outp_tex, coord, value);
+    //...
+}
+@end
+```
+
+On the CPU side, call `sg_apply_bindings()` to apply storage-image-bindings,
+just as for texture- or storage-buffer-bindings:
+
+```c
+// using the code-generated constant:
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .views = {
+        [VIEW_cs_outp_tex] = simg_view,
+    },
+});
+
+// or directly using the explicit binding:
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .views = {
+        [0] = simg_view,
+    },
+});
+```
 
 ### GLSL uniform blocks and C structs
 
@@ -1246,28 +1300,29 @@ sg_pipeline_desc pip_desc = {
 };
 ```
 
-### Image and Sampler Bind Slot Inspection
+### Texture and Sampler Bind Slot Inspection
 
 The function
 
-**int [mod]_[prog]_image_slot(const char\* image_name)**
+**int [mod]_[prog]_texture_slot(const char\* texture_name)**
 **int [mod]_[prog]_sampler_slot(const char\* sampler_name)**
 
-returns the bind-slot of an image or sampler on the given shader stage, or -1 if the
-shader doesn't expect an image or sampler of that name on that shader stage.
+returns the bind-slot of a texture- or sampler-binding on the given shader stage, or -1 if the
+shader doesn't expect a texture- or sampler-binding of that name on that shader stage.
 
 Code example:
 
 ```c
-sg_image specular_texture = ...;
+sg_view specular_texture_view = ...;
+sg_sampler specular_sampler = ...;
 sg_bindings binds = { ... };
 
 // check if the shader expects a specular texture,
 // if yes set it in the bindings struct at the expected slot index:
-const int spec_tex_slot = mod_prog_image_slot("spec_tex");
+const int spec_tex_slot = mod_prog_texture_slot("spec_tex");
 const int spec_smp_slot = mod_prog_sampler_slot("spec_smp");
 if ((spec_tex_slot >= 0) && (spec_smp_slot >= 0)) {
-    bindings.images[spec_tex_slot] = specular_texture;
+    bindings.views[spec_tex_slot] = specular_texture_view;
     bindings.samplers[spex_smp_slot] = specular_sampler;
 }
 
@@ -1277,7 +1332,9 @@ sg_apply_bindings(&binds);
 
 ### Uniform Block Inspection
 
-> NOTE: some of those dynamic reflection functions are not actually needed anymore, because it's now possible to define explicit bind slots in the shader source
+> NOTE: some of those dynamic reflection functions are not actually needed
+anymore, because it's now possible to define explicit bind slots in the shader
+source
 
 The function
 
@@ -1325,8 +1382,11 @@ provides additional type information with the following function:
 
 `sg_glsl_shader_uniform [mod]_[prog]_uniform_desc(const char* ub_name, const char* u_name)`
 
-### Storage buffer inspection
+### Storage buffer and storage image inspection
 
-Currently, only the bind slot can be inspected for storage buffers:
+Currently, only the bind slot can be inspected for storage resources:
 
-`int [mod]_[prog]_storagebuffer_slot(const char* sbuf_name)`
+```c
+int [mod]_[prog]_storagebuffer_slot(const char* sbuf_name);
+int [mod]_[prog]_storageimage_slot(const char* sbuf_name);
+```

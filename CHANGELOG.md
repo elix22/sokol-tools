@@ -1,6 +1,61 @@
 CHANGELOG
 =========
 
+### **23-Aug-2025**
+
+This is the update for the sokol-gfx 'resource-view-update'
+(see sokol-gfx PR https://github.com/floooh/sokol/pull/1287 and sokol-tools
+PR: https://github.com/floooh/sokol-tools/pull/187).
+
+When recompiling your existing shaders you may get errors about bindslot collisions.
+
+This is because the formerly separate bindslot ranges for textures, storage-buffers
+and storage-buffers have now been merged into a common 'view bindslot range'.
+
+The N `layout(binding=N)` for textures, storage-images and storage-buffers
+now directly maps to the index in the `sg_bindings.views[]` array which
+defines the resource bindings for texture-, storage-image- and storage-buffer-
+bindings.
+
+For more detailed information, see the updated [sokol-shdc documentation](https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md),
+and this [blog post](https://floooh.github.io/2025/08/17/sokol-gfx-view-update.html).
+
+### **26-Jun-2025**
+
+sokol-shdc can now write a Clang/GCC style dep-file via the new command line
+options `--dependency-file [path]`. Many thanks to @Seb-degraff for the PR
+(https://github.com/floooh/sokol-tools/pull/185).
+
+#### **20-May-2025**
+
+This is the update for the sokol-gfx `compute-ms2` update which adds storage
+image support in compute shaders (if not using compute shaders the
+code generator output is compatible with older sokol-gfx versions).
+
+Other then that a minor bugfix: when using the `bare` or `bare_yaml` targets,
+the output WGSL files didn't have a the .wgsl file extension (in fact: no
+file extension at all).
+
+#### **16-Apr-2025**
+
+All dependencies have been updated to the latest versions and the Tint
+sources are now pulled from https://github.com/floooh/tint-extract
+
+#### **23-Mar-2025**
+
+Added a new cmdline arg `--no-log-cmdline`, this is useful when the code-generated
+output files are committed to version control and sokol-shdc is called
+with absolute input/output paths (since those will look different on each machine)
+
+#### **15-Mar-2025**
+
+Write the 'vertex attribute base type' as part of the reflection info
+in the code-generated `sg_shader_desc`. Requires the sokol update:
+
+https://github.com/floooh/sokol/pull/1222
+
+Implemented in PR: https://github.com/floooh/sokol-tools/pull/176
+
 #### **05-Mar-2025**
 
 Add support for compute shaders.

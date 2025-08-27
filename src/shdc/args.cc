@@ -28,6 +28,8 @@ enum {
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
     OPTION_SAVE_INTERMEDIATE_SPIRV,
+    OPTION_NO_LOG_CMDLINE,
+    OPTION_DEPENDENCY_FILE,
 };
 
 static const getopt_option_t option_list[] = {
@@ -47,6 +49,8 @@ static const getopt_option_t option_list[] = {
     { "ifdef",              0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,        "wrap backend-specific generated code in #ifdef/#endif"},
     { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
     { "save-intermediate-spirv", 0, GETOPT_OPTION_TYPE_NO_ARG,  0, OPTION_SAVE_INTERMEDIATE_SPIRV, "save intermediate SPIRV bytecode (for debug inspection)"},
+    { "no-log-cmdline",     0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NO_LOG_CMDLINE, "don't log the cmdline to the code-generated output file"},
+    { "dependency-file",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEPENDENCY_FILE, "generate a Clang/GCC style dep-file for use with build systems", "[deps file]" },
     GETOPT_OPTIONS_END
 };
 
@@ -229,6 +233,9 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_SAVE_INTERMEDIATE_SPIRV:
                     args.save_intermediate_spirv = true;
                     break;
+                case OPTION_NO_LOG_CMDLINE:
+                    args.no_log_cmdline = true;
+                    break;
                 case OPTION_SLANG:
                     if (!parse_slang(args, ctx.current_opt_arg)) {
                         /* error details have been filled by parse_slang() */
@@ -256,6 +263,9 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_NOIFDEF:
                     // obsolete, but keep for backwards compatibility
                     args.ifdef = false;
+                    break;
+                case OPTION_DEPENDENCY_FILE:
+                    args.dependency_file = ctx.current_opt_arg;
                     break;
                 case OPTION_HELP:
                     print_help_string(ctx);
@@ -287,6 +297,8 @@ void Args::dump_debug() const {
     fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
     fmt::print(stderr, "  error_format: {}\n", ErrMsg::format_to_str(error_format));
+    fmt::print(stderr, "  save_intermediate_spirv: {}\n", save_intermediate_spirv);
+    fmt::print(stderr, "  no_log_cmdline: {}\n", no_log_cmdline);
     fmt::print(stderr, "\n");
 }
 

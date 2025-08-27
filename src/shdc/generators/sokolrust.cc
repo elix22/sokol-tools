@@ -244,6 +244,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                     const StageAttr& attr = prog.vs().inputs[attr_index];
                     if (attr.slot >= 0) {
+                        l("desc.attrs[{}].base_type = {};\n", attr_index, attr_basetype(attr.type_info.basetype()));
                         if (Slang::is_glsl(slang)) {
                             l("desc.attrs[{}].glsl_name = c\"{}\".as_ptr();\n", attr_index, attr.name);
                         } else if (Slang::is_hlsl(slang)) {
@@ -253,7 +254,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            for (int ub_index = 0; ub_index < Bindings::MaxUniformBlocks; ub_index++) {
+            for (int ub_index = 0; ub_index < MaxUniformBlocks; ub_index++) {
                 const UniformBlock* ub = prog.bindings.find_uniform_block_by_sokol_slot(ub_index);
                 if (ub) {
                     const std::string ubn = fmt::format("desc.uniform_blocks[{}]", ub_index);
@@ -284,10 +285,25 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBuffers; sbuf_index++) {
-                const StorageBuffer* sbuf = prog.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
-                if (sbuf) {
-                    const std::string& sbn = fmt::format("desc.storage_buffers[{}]", sbuf_index);
+            for (int view_index = 0; view_index < MaxViews; view_index++) {
+                const Bindings::View view = prog.bindings.get_view_by_sokol_slot(view_index);
+                if (view.type == BindSlot::Type::Texture) {
+                    const Texture* tex = &view.texture;
+                    const std::string tn = fmt::format("desc.views[{}].texture", view_index);
+                    l("{}.stage = {};\n", tn, shader_stage(tex->stage));
+                    l("{}.multisampled = {};\n", tn, tex->multisampled ? "true" : "false");
+                    l("{}.image_type = {};\n", tn, image_type(tex->type));
+                    l("{}.sample_type = {};\n", tn, image_sample_type(tex->sample_type));
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_t_n = {};\n", tn, tex->hlsl_register_t_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {};\n", tn, tex->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group1_binding_n = {};\n", tn, tex->wgsl_group1_binding_n);
+                    }
+                } else if (view.type == BindSlot::Type::StorageBuffer) {
+                    const StorageBuffer* sbuf = &view.storage_buffer;
+                    const std::string& sbn = fmt::format("desc.views[{}].storage_buffer", view_index);
                     l("{}.stage = {};\n", sbn, shader_stage(sbuf->stage));
                     l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
@@ -304,26 +320,25 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sbn, sbuf->glsl_binding_n);
                     }
-                }
-            }
-            for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
-                const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
-                if (img) {
-                    const std::string in = fmt::format("desc.images[{}]", img_index);
-                    l("{}.stage = {};\n", in, shader_stage(img->stage));
-                    l("{}.multisampled = {};\n", in, img->multisampled ? "true" : "false");
-                    l("{}.image_type = {};\n", in, image_type(img->type));
-                    l("{}.sample_type = {};\n", in, image_sample_type(img->sample_type));
+                } else if (view.type == BindSlot::Type::StorageImage) {
+                    const StorageImage* simg = &view.storage_image;
+                    const std::string& sin = fmt::format("desc.views[{}].storage_image", view_index);
+                    l("{}.stage = {};\n", sin, shader_stage(simg->stage));
+                    l("{}.image_type = {};\n", sin, image_type(simg->type));
+                    l("{}.access_format = {};\n", sin, storage_pixel_format(simg->access_format));
+                    l("{}.writeonly = {};\n", sin, simg->writeonly);
                     if (Slang::is_hlsl(slang)) {
-                        l("{}.hlsl_register_t_n = {};\n", in, img->hlsl_register_t_n);
+                        l("{}.hlsl_register_u_n = {};\n", sin, simg->hlsl_register_u_n);
                     } else if (Slang::is_msl(slang)) {
-                        l("{}.msl_texture_n = {};\n", in, img->msl_texture_n);
+                        l("{}.msl_texture_n = {};\n", sin, simg->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgsl_group1_binding_n = {};\n", in, img->wgsl_group1_binding_n);
+                        l("{}.wgsl_group1_binding_n = {};\n", sin, simg->wgsl_group1_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
                     }
                 }
             }
-            for (int smp_index = 0; smp_index < Bindings::MaxSamplers; smp_index++) {
+            for (int smp_index = 0; smp_index < MaxSamplers; smp_index++) {
                 const Sampler* smp = prog.bindings.find_sampler_by_sokol_slot(smp_index);
                 if (smp) {
                     const std::string sn = fmt::format("desc.samplers[{}]", smp_index);
@@ -338,15 +353,15 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
-                const ImageSampler* img_smp = prog.bindings.find_image_sampler_by_sokol_slot(img_smp_index);
-                if (img_smp) {
-                    const std::string isn = fmt::format("desc.image_sampler_pairs[{}]", img_smp_index);
-                    l("{}.stage = {};\n", isn, shader_stage(img_smp->stage));
-                    l("{}.image_slot = {};\n", isn, prog.bindings.find_image_by_name(img_smp->image_name)->sokol_slot);
-                    l("{}.sampler_slot = {};\n", isn, prog.bindings.find_sampler_by_name(img_smp->sampler_name)->sokol_slot);
+            for (int tex_smp_index = 0; tex_smp_index < MaxTextureSamplers; tex_smp_index++) {
+                const TextureSampler* tex_smp = prog.bindings.find_texture_sampler_by_sokol_slot(tex_smp_index);
+                if (tex_smp) {
+                    const std::string tsn = fmt::format("desc.texture_sampler_pairs[{}]", tex_smp_index);
+                    l("{}.stage = {};\n", tsn, shader_stage(tex_smp->stage));
+                    l("{}.view_slot = {};\n", tsn, prog.bindings.find_texture_by_name(tex_smp->texture_name)->sokol_slot);
+                    l("{}.sampler_slot = {};\n", tsn, prog.bindings.find_sampler_by_name(tex_smp->sampler_name)->sokol_slot);
                     if (Slang::is_glsl(slang)) {
-                        l("{}.glsl_name = c\"{}\".as_ptr();\n", isn, img_smp->name);
+                        l("{}.glsl_name = c\"{}\".as_ptr();\n", tsn, tex_smp->name);
                     }
                 }
             }
@@ -400,6 +415,15 @@ std::string SokolRustGenerator::shader_stage(ShaderStage::Enum e) {
         case ShaderStage::Vertex: return "sg::ShaderStage::Vertex";
         case ShaderStage::Fragment: return "sg::ShaderStage::Fragment";
         case ShaderStage::Compute: return "sg::ShaderStage::Compute";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolRustGenerator::attr_basetype(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return "sg::ShaderAttrBaseType::Float";
+        case Type::Int:     return "sg::ShaderAttrBaseType::Sint";
+        case Type::UInt:    return "sg::ShaderAttrBaseType::Uint";
         default: return "INVALID";
     }
 }
@@ -467,6 +491,28 @@ std::string SokolRustGenerator::sampler_type(SamplerType::Enum e) {
     }
 }
 
+std::string SokolRustGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
+    switch (e) {
+        case StoragePixelFormat::RGBA8:     return "sg::PixelFormat::Rgba8";
+        case StoragePixelFormat::RGBA8SN:   return "sg::PixelFormat::Rgba8sn";
+        case StoragePixelFormat::RGBA8UI:   return "sg::PixelFormat::Rgba8ui";
+        case StoragePixelFormat::RGBA8SI:   return "sg::PixelFormat::Rgbs8si";
+        case StoragePixelFormat::RGBA16UI:  return "sg::PixelFormat::Rgba16ui";
+        case StoragePixelFormat::RGBA16SI:  return "sg::PixelFormat::Rgba16si";
+        case StoragePixelFormat::RGBA16F:   return "sg::PixelFormat::Rgba16f";
+        case StoragePixelFormat::R32UI:     return "sg::PixelFormat::R32ui";
+        case StoragePixelFormat::R32SI:     return "sg::PixelFormat::R32si";
+        case StoragePixelFormat::R32F:      return "sg::PixelFormat::R32f";
+        case StoragePixelFormat::RG32UI:    return "sg::PixelFormat::Rg32ui";
+        case StoragePixelFormat::RG32SI:    return "sg::PixelFormat::Rg32si";
+        case StoragePixelFormat::RG32F:     return "sg::PixelFormat::Rg32f";
+        case StoragePixelFormat::RGBA32UI:  return "sg::PixelFormat::Rgba32ui";
+        case StoragePixelFormat::RGBA32SI:  return "sg::PixelFormat::Rgba32si";
+        case StoragePixelFormat::RGBA32F:   return "sg::PixelFormat::Rgba32f";
+        default: return "INVALID";
+    }
+}
+
 std::string SokolRustGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
@@ -499,8 +545,16 @@ std::string SokolRustGenerator::vertex_attr_name(const std::string& prog_name, c
     return pystring::upper(fmt::format("ATTR_{}_{}", prog_name, attr.name));
 }
 
-std::string SokolRustGenerator::image_bind_slot_name(const Image& img) {
-    return pystring::upper(fmt::format("IMG_{}", img.name));
+std::string SokolRustGenerator::texture_bind_slot_name(const Texture& tex) {
+    return pystring::upper(fmt::format("VIEW_{}", tex.name));
+}
+
+std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return pystring::upper(fmt::format("VIEW_{}", sbuf.name));
+}
+
+std::string SokolRustGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return pystring::upper(fmt::format("VIEW_{}", simg.name));
 }
 
 std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -511,16 +565,12 @@ std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock&
     return pystring::upper(fmt::format("UB_{}", ub.name));
 }
 
-std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return pystring::upper(fmt::format("SBUF_{}", sbuf.name));
-}
-
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("pub const {}: usize = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolRustGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(img), img.sokol_slot);
+std::string SokolRustGenerator::texture_bind_slot_definition(const Texture& tex) {
+    return fmt::format("pub const {}: usize = {};", texture_bind_slot_name(tex), tex.sokol_slot);
 }
 
 std::string SokolRustGenerator::sampler_bind_slot_definition(const Sampler& smp) {
@@ -533,6 +583,10 @@ std::string SokolRustGenerator::uniform_block_bind_slot_definition(const Uniform
 
 std::string SokolRustGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
     return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
+}
+
+std::string SokolRustGenerator::storage_image_bind_slot_definition(const StorageImage& simg) {
+    return fmt::format("pub const {}: usize = {};", storage_image_bind_slot_name(simg), simg.sokol_slot);
 }
 
 } // namespace

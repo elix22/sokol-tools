@@ -77,17 +77,17 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
-                if (prog.bindings.storage_buffers.size() > 0) {
-                    l_open("storage_buffers:\n");
-                    for (const auto& sbuf: prog.bindings.storage_buffers) {
-                        gen_storage_buffer(sbuf, slang);
-                    }
-                    l_close();
-                }
-                if (prog.bindings.images.size() > 0) {
-                    l_open("images:\n");
-                    for (const auto& image: prog.bindings.images) {
-                        gen_image(image, slang);
+                if (prog.bindings.get_num_populated_views() > 0) {
+                    l_open("views:\n");
+                    for (int view_index = 0; view_index < MaxViews; view_index++) {
+                        const Bindings::View view = prog.bindings.get_view_by_sokol_slot(view_index);
+                        if (view.type == BindSlot::Type::Texture) {
+                            gen_texture(view.texture, slang);
+                        } else if (view.type == BindSlot::Type::StorageBuffer) {
+                            gen_storage_buffer(view.storage_buffer, slang);
+                        } else if (view.type == BindSlot::Type::StorageImage) {
+                            gen_storage_image(view.storage_image, slang);
+                        }
                     }
                     l_close();
                 }
@@ -98,10 +98,10 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
-                if (prog.bindings.image_samplers.size() > 0) {
-                    l_open("image_sampler_pairs:\n");
-                    for (const auto& image_sampler: prog.bindings.image_samplers) {
-                        gen_image_sampler(image_sampler, slang);
+                if (prog.bindings.texture_samplers.size() > 0) {
+                    l_open("texture_sampler_pairs:\n");
+                    for (const auto& texture_sampler: prog.bindings.texture_samplers) {
+                        gen_texture_sampler(prog.bindings, texture_sampler, slang);
                     }
                     l_close();
                 }
@@ -128,6 +128,7 @@ void YamlGenerator::gen_attr(const StageAttr& attr, Slang::Enum slang) {
     l_open("-\n");
     l("slot: {}\n", attr.slot);
     l("type: {}\n", uniform_type(attr.type_info.type));
+    l("base_type: {}\n", attr_basetype(attr.type_info.basetype()));
     if (Slang::is_glsl(slang)) {
         l("glsl_name: {}\n", attr.name);
     } else if (Slang::is_hlsl(slang)) {
@@ -193,6 +194,7 @@ void YamlGenerator::gen_uniform_block_refl(const UniformBlock& ub) {
 void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum slang) {
     const auto& item = sbuf.struct_info.struct_items[0];
     l_open("-\n");
+    l_open("storage_buffer:\n");
     l("slot: {}\n", sbuf.sokol_slot);
     l("stage: {}\n", shader_stage(sbuf.stage));
     l("size: {}\n", sbuf.struct_info.size);
@@ -216,23 +218,48 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum sl
         l("glsl_binding_n: {}\n", sbuf.glsl_binding_n);
     }
     l_close();
+    l_close();
 }
 
-void YamlGenerator::gen_image(const Image& img, Slang::Enum slang) {
+void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slang) {
     l_open("-\n");
-    l("slot: {}\n", img.sokol_slot);
-    l("stage: {}\n", shader_stage(img.stage));
-    l("name: {}\n", img.name);
-    l("multisampled: {}\n", img.multisampled);
-    l("type: {}\n", image_type(img.type));
-    l("sample_type: {}\n", image_sample_type(img.sample_type));
+    l_open("storage_image:\n");
+    l("slot: {}\n", simg.sokol_slot);
+    l("stage: {}\n", shader_stage(simg.stage));
+    l("name: {}\n", simg.name);
+    l("type: {}\n", image_type(simg.type));
+    l("access_format: {}\n", storage_pixel_format(simg.access_format));
+    l("writeonly: {}\n", simg.writeonly);
     if (Slang::is_hlsl(slang)) {
-        l("hlsl_register_t_n: {}\n", img.hlsl_register_t_n);
+        l("hlsl_register_u_n: {}\n", simg.hlsl_register_u_n);
     } else if (Slang::is_msl(slang)) {
-        l("msl_texture_n: {}\n", img.msl_texture_n);
+        l("msl_texture_n: {}\n", simg.msl_texture_n);
     } else if (Slang::is_wgsl(slang)) {
-        l("wgsl_group1_binding_n: {}\n", img.wgsl_group1_binding_n);
+        l("wgsl_group1_binding_n: {}\n", simg.wgsl_group1_binding_n);
+    } else if (Slang::is_glsl(slang)) {
+        l("glsl_binding_n: {}\n", simg.glsl_binding_n);
     }
+    l_close();
+    l_close();
+}
+
+void YamlGenerator::gen_texture(const Texture& tex, Slang::Enum slang) {
+    l_open("-\n");
+    l_open("texture:\n");
+    l("slot: {}\n", tex.sokol_slot);
+    l("stage: {}\n", shader_stage(tex.stage));
+    l("name: {}\n", tex.name);
+    l("multisampled: {}\n", tex.multisampled);
+    l("type: {}\n", image_type(tex.type));
+    l("sample_type: {}\n", image_sample_type(tex.sample_type));
+    if (Slang::is_hlsl(slang)) {
+        l("hlsl_register_t_n: {}\n", tex.hlsl_register_t_n);
+    } else if (Slang::is_msl(slang)) {
+        l("msl_texture_n: {}\n", tex.msl_texture_n);
+    } else if (Slang::is_wgsl(slang)) {
+        l("wgsl_group1_binding_n: {}\n", tex.wgsl_group1_binding_n);
+    }
+    l_close();
     l_close();
 }
 
@@ -252,15 +279,17 @@ void YamlGenerator::gen_sampler(const Sampler& smp, Slang::Enum slang) {
     l_close();
 }
 
-void YamlGenerator::gen_image_sampler(const ImageSampler& img_smp, Slang::Enum slang) {
+void YamlGenerator::gen_texture_sampler(const Bindings& bindings, const TextureSampler& tex_smp, Slang::Enum slang) {
     l_open("-\n");
-    l("slot: {}\n", img_smp.sokol_slot);
-    l("stage: {}\n", shader_stage(img_smp.stage));
-    l("name: {}\n", img_smp.name);
-    l("image_name: {}\n", img_smp.image_name);
-    l("sampler_name: {}\n", img_smp.sampler_name);
+    l("slot: {}\n", tex_smp.sokol_slot);
+    l("stage: {}\n", shader_stage(tex_smp.stage));
+    l("name: {}\n", tex_smp.name);
+    l("view_name: {}\n", tex_smp.texture_name);
+    l("sampler_name: {}\n", tex_smp.sampler_name);
+    l("view_slot: {}\n", bindings.find_texture_by_name(tex_smp.texture_name)->sokol_slot);
+    l("sampler_slot: {}\n", bindings.find_sampler_by_name(tex_smp.sampler_name)->sokol_slot);
     if (Slang::is_glsl(slang)) {
-        l("glsl_name: {}\n", img_smp.name);
+        l("glsl_name: {}\n", tex_smp.name);
     }
     l_close();
 }
@@ -291,6 +320,10 @@ std::string YamlGenerator::shader_stage(ShaderStage::Enum e) {
     return ShaderStage::to_str(e);
 }
 
+std::string YamlGenerator::attr_basetype(Type::Enum e) {
+    return Type::type_to_str(e);
+}
+
 std::string YamlGenerator::image_type(ImageType::Enum e) {
     return ImageType::to_str(e);
 }
@@ -301,6 +334,10 @@ std::string YamlGenerator::image_sample_type(ImageSampleType::Enum e) {
 
 std::string YamlGenerator::sampler_type(SamplerType::Enum e) {
     return SamplerType::to_str(e);
+}
+
+std::string YamlGenerator::storage_pixel_format(StoragePixelFormat::Enum e) {
+    return StoragePixelFormat::to_str(e);
 }
 
 } // namespace
