@@ -503,11 +503,9 @@ void SokolCSharpGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Pr
 
 void SokolCSharpGenerator::gen_texture_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("public static {}int {}{}_texture_slot(string tex_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)tex_name;\n");
     for (const Texture& tex: prog.bindings.textures) {
         if (tex.sokol_slot >= 0) {
             l_open("if (tex_name == \"{}\") {{\n", tex.name);
-            l_open("if (0 == strcmp(tex_name, \"{}\")) {{\n", tex.name);
             l("return {};\n", tex.sokol_slot);
             l_close("}}\n");
         }
@@ -570,7 +568,6 @@ void SokolCSharpGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen
 
 void SokolCSharpGenerator::gen_storage_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("public static {}int {}{}_storageimage_slot(string simg_name) {{\n", func_prefix, mod_prefix, prog.name);
-    l("(void)simg_name;\n");
     for (const StorageImage& simg: prog.bindings.storage_images) {
         if (simg.sokol_slot >= 0) {
             l_open("if (simg_name == \"{}\") {{\n", simg.name);
