@@ -36,7 +36,7 @@ ErrMsg SokolCSharpGenerator::begin(const GenInput& gen) {
         mod_prefix = fmt::format("{}_", gen.inp.module);
     }
     if (gen.args.output_format != Format::SOKOL_IMPL) {
-        func_prefix = "static inline ";
+        func_prefix = " ";
     }
     return Generator::begin(gen);
 }
@@ -489,7 +489,7 @@ void SokolCSharpGenerator::gen_shader_desc_func(const GenInput& gen, const Progr
 
 
 void SokolCSharpGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_attr_slot(string attr_name) {{\n", prog.name);
+    l_open("public static int {}{}_attr_slot(string attr_name) {{\n",mod_prefix, prog.name);
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
             l_open("if (attr_name == \"{}\") {{\n", attr.name);
@@ -502,7 +502,7 @@ void SokolCSharpGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Pr
 }
 
 void SokolCSharpGenerator::gen_texture_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static {}int {}{}_texture_slot(string tex_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l_open("public static int {}{}_texture_slot(string tex_name) {{\n", mod_prefix, prog.name);
     for (const Texture& tex: prog.bindings.textures) {
         if (tex.sokol_slot >= 0) {
             l_open("if (tex_name == \"{}\") {{\n", tex.name);
@@ -515,7 +515,7 @@ void SokolCSharpGenerator::gen_texture_slot_refl_func(const GenInput& gen, const
 }
 
 void SokolCSharpGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_sampler_slot(string smp_name) {{\n", prog.name);
+    l_open("public static int {}{}_sampler_slot(string smp_name) {{\n",mod_prefix, prog.name);
     for (const Sampler& smp: prog.bindings.samplers) {
         if (smp.sokol_slot >= 0) {
             l_open("if (smp_name == \"{}\") {{\n", smp.name);
@@ -528,7 +528,7 @@ void SokolCSharpGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const
 }
 
 void SokolCSharpGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_uniformblock_slot(string ub_name) {{\n", prog.name);
+    l_open("public static int {}{}_uniformblock_slot(string ub_name) {{\n",mod_prefix, prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
             l_open("if (ub_name == \"{}\") {{\n", ub.name);
@@ -541,7 +541,7 @@ void SokolCSharpGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen,
 }
 
 void SokolCSharpGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_uniformblock_size(string ub_name) {{\n", prog.name);
+    l_open("public static int {}{}_uniformblock_size(string ub_name) {{\n",mod_prefix, prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
             l_open("if (ub_name == \"{}\") {{\n", ub.name);
@@ -554,7 +554,7 @@ void SokolCSharpGenerator::gen_uniform_block_size_refl_func(const GenInput& gen,
 }
 
 void SokolCSharpGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_storagebuffer_slot(string sbuf_name) {{\n", prog.name);
+    l_open("public static int {}{}_storagebuffer_slot(string sbuf_name) {{\n",mod_prefix, prog.name);
     for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
         if (sbuf.sokol_slot >= 0) {
             l_open("if (sbuf_name == \"{}\") {{\n", sbuf.name);
@@ -567,7 +567,7 @@ void SokolCSharpGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen
 }
 
 void SokolCSharpGenerator::gen_storage_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static {}int {}{}_storageimage_slot(string simg_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l_open("public static int {}{}_storageimage_slot(string simg_name) {{\n", mod_prefix, prog.name);
     for (const StorageImage& simg: prog.bindings.storage_images) {
         if (simg.sokol_slot >= 0) {
             l_open("if (simg_name == \"{}\") {{\n", simg.name);
@@ -580,7 +580,7 @@ void SokolCSharpGenerator::gen_storage_image_slot_refl_func(const GenInput& gen,
 }
 
 void SokolCSharpGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static int {}_uniform_offset(string ub_name, string u_name) {{\n", prog.name);
+    l_open("public static int {}{}_uniform_offset(string ub_name, string u_name) {{\n",mod_prefix, prog.name);
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
             l_open("if (ub_name == \"{}\") {{\n", ub.name);
@@ -597,7 +597,7 @@ void SokolCSharpGenerator::gen_uniform_offset_refl_func(const GenInput& gen, con
 }
 
 void SokolCSharpGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("public static sg_glsl_shader_uniform {}_uniform_desc(string ub_name, string u_name) {{\n", prog.name);
+    l_open("public static sg_glsl_shader_uniform {}{}_uniform_desc(string ub_name, string u_name) {{\n", mod_prefix, prog.name);
     l("sg_glsl_shader_uniform res = default;\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
