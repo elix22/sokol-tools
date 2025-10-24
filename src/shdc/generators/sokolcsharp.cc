@@ -106,18 +106,31 @@ void SokolCSharpGenerator::gen_prerequisites(const GenInput& gen) {
 
 void SokolCSharpGenerator::print2dArray(std::string name,std::string type,int rows,int columns)
 {
-    l("fixed {} _{}[{}];\n",type, name, rows*columns);
-    l("public ref {} {}(int row, int column)\n",type,name);
-    l_open("{{\n");
-    l("fixed ({}* pTP = _{})\n",type,name);
-    l("return ref *(pTP + column + (row * {}));\n",rows);
+    // Generate a Collection struct pattern like in SG.cs
+    int total_items = rows * columns;
+    l("#pragma warning disable 169\n");
+    l_open("public struct {}Collection {{\n", name);
+    l("public ref {} this[int row, int column] {{ get {{ fixed ({}* pTP = &_item0) return ref *(pTP + column + (row * {})); }} }}\n", type, type, columns);
+    for (int i = 0; i < total_items; i++) {
+        l("private {} _item{};\n", type, i);
+    }
     l_close("}}\n");
-    
+    l("#pragma warning restore 169\n");
+    l("public {}Collection {};\n", name, name);
 }
 
 void SokolCSharpGenerator::print1dArray(std::string name,std::string type,int size)
 {
-    l("fixed {} {}[{}];\n",type,name,size);
+    // Generate a Collection struct pattern like in SG.cs
+    l("#pragma warning disable 169\n");
+    l_open("public struct {}Collection {{\n", name);
+    l("public ref {} this[int index] => ref MemoryMarshal.CreateSpan(ref _item0, {})[index];\n", type, size);
+    for (int i = 0; i < size; i++) {
+        l("private {} _item{};\n", type, i);
+    }
+    l_close("}}\n");
+    l("#pragma warning restore 169\n");
+    l("public {}Collection {};\n", name, name);
 }
 
 void SokolCSharpGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
@@ -138,7 +151,17 @@ void SokolCSharpGenerator::gen_uniform_block_decl(const GenInput &gen, const Uni
             if (uniform.array_count == 0) {
                 l("public {} {};\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
             } else {
-                l("public {}[] {} = new {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name,gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.array_count);
+                // Generate Collection struct for arrays
+                std::string type_name = gen.inp.ctype_map.at(uniform.type_as_glsl());
+                l("#pragma warning disable 169\n");
+                l_open("public struct {}Collection {{\n", uniform.name);
+                l("public ref {} this[int index] => ref MemoryMarshal.CreateSpan(ref _item0, {})[index];\n", type_name, uniform.array_count);
+                for (int i = 0; i < uniform.array_count; i++) {
+                    l("private {} _item{};\n", type_name, i);
+                }
+                l_close("}}\n");
+                l("#pragma warning restore 169\n");
+                l("public {}Collection {};\n", uniform.name, uniform.name);
             }
         } else {
             // default type names (float)
@@ -221,7 +244,17 @@ void SokolCSharpGenerator::gen_struct_interior_decl_std430(const GenInput& gen, 
             if (item.array_count == 0) {
                 l("{} {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name);
             } else {
-                l("public {}[] {} = new {}[{}];\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name,gen.inp.ctype_map.at(item.type_as_glsl()), item.array_count);
+                // Generate Collection struct for arrays
+                std::string type_name = gen.inp.ctype_map.at(item.type_as_glsl());
+                l("#pragma warning disable 169\n");
+                l_open("public struct {}Collection {{\n", item.name);
+                l("public ref {} this[int index] => ref MemoryMarshal.CreateSpan(ref _item0, {})[index];\n", type_name, item.array_count);
+                for (int i = 0; i < item.array_count; i++) {
+                    l("private {} _item{};\n", type_name, i);
+                }
+                l_close("}}\n");
+                l("#pragma warning restore 169\n");
+                l("public {}Collection {};\n", item.name, item.name);
             }
         } else {
             // default typenames
