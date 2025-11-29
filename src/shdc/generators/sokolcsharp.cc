@@ -242,7 +242,7 @@ void SokolCSharpGenerator::gen_struct_interior_decl_std430(const GenInput& gen, 
         } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
             // user-mapped typename
             if (item.array_count == 0) {
-                l("{} {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name);
+                l("public {} {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name);
             } else {
                 // Generate Collection struct for arrays
                 std::string type_name = gen.inp.ctype_map.at(item.type_as_glsl());
@@ -334,7 +334,7 @@ void SokolCSharpGenerator::gen_struct_interior_decl_std430(const GenInput& gen, 
 }
 
 void SokolCSharpGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
-    l_open("struct {} {{\n", struct_name(struc.struct_typename));
+    l_open("public struct {} {{\n", struct_name(struc.struct_typename));
     gen_struct_interior_decl_std430(gen, struc, struc.size);
     l_close("}} ;\n");
 }
