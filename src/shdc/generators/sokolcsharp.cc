@@ -448,7 +448,7 @@ void SokolCSharpGenerator::gen_shader_desc_func(const GenInput& gen, const Progr
                     const StorageBuffer* sbuf = &view.storage_buffer;
                     const std::string& sbn = fmt::format("desc.views[{}].storage_buffer", view_index);
                     l("{}.stage = {};\n", sbn, shader_stage(sbuf->stage));
-                    l("{}.readonly = {};\n", sbn, sbuf->readonly);
+                    l("{}._readonly = {};\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
                         if (sbuf->hlsl_register_t_n >= 0) {
                             l("{}.hlsl_register_t_n = {};\n", sbn, sbuf->hlsl_register_t_n);
